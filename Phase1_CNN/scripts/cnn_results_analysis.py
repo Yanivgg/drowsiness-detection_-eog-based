@@ -1,11 +1,11 @@
 # %% [markdown]
-# # Microsleep Detection - Results Analysis
+# # Drowsiness Detection - CNN Results Analysis
 # 
-# Comprehensive analysis and comparison of all trained models:
+# Comprehensive analysis and comparison of all trained CNN models:
 # - CNN_2s, CNN_4s, CNN_8s, CNN_16s, CNN_32s
 # - CNN_LSTM
 # 
-# **Test Set:** Subject 07 (100,600 microsleep samples)
+# **Test Set:** Subject 07 (100,600 drowsy samples)
 # 
 # **Key Metrics:**
 # - Cohen's Kappa (primary metric for imbalanced data)

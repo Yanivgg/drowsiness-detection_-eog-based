@@ -1,223 +1,113 @@
-# Drowsiness Detection using EOG Signals
-
-Deep learning-based **drowsiness detection** using only EOG (Electrooculography) signals from the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c). 
-
-> **⚠️ Important**: This is **NOT** a simple replication of the Malafeev et al. (2021) microsleep detection project. This project **extensively adapts and modifies** their CNN architecture for a completely different task (drowsiness vs. microsleep detection), different dataset (Dryad vs. clinical sleep studies), different input channels (2 EOG-only vs. 3 channels with EEG), and different output (binary vs. 4-class). See [Key Adaptations](#-key-adaptations-from-original-microsleep-project) section below for detailed modifications.
+# Drowsiness Detection from EOG Signals: A Two-Phase Approach
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow 2.x](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://www.tensorflow.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 ## 🎯 Project Overview
 
-This project implements automatic **drowsiness detection** from EOG signals recorded during monotonous tasks. Unlike the original microsleep detection task, this project detects general drowsiness states in subjects from the Dryad dataset, requiring **substantial modifications** to data preprocessing, model architecture, training procedures, and evaluation metrics.
+This project implements automatic **drowsiness detection** from EOG (Electrooculography) signals using two complementary approaches:
 
-## 🔧 Key Adaptations from Original Microsleep Project
+- **Phase 1**: End-to-end deep learning with Convolutional Neural Networks (CNN)
+- **Phase 2**: Feature engineering with traditional machine learning classifiers
 
-Extensive modifications were required to adapt their approach to drowsiness detection on the Dryad dataset:
+Both phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c), containing EOG recordings from 10 participants performing monotonous driving simulation tasks.
 
-### 1. Complete Data Pipeline Redesign
+### Key Highlights
 
-**Original**: Pre-processed data from clinical sleep studies  
-**Our Implementation**: Built from scratch
-- ✅ Custom EDF file parser for Dryad dataset format
-- ✅ New annotation extraction system for drowsiness events (vs. microsleep events)
-- ✅ Custom resampling pipeline (128 Hz → 200 Hz) with anti-aliasing
-- ✅ Novel labeling strategy with 2-second context windows
-- ✅ Binary label generation (Awake/Drowsy) instead of multi-class sleep stages
-- ✅ Custom MATLAB format converter for compatibility with model pipeline
+- **Dataset**: 10 subjects, 20 recording sessions, 816 drowsiness events
+- **Input**: 2 EOG channels only (LOC-Ref, ROC-Ref) - no EEG required
+- **Task**: Binary classification (Awake vs. Drowsy)
+- **Challenge**: Severe class imbalance (96.5% Awake, 3.5% Drowsy)
+- **Best Performance**: CNN_16s with Cohen's Kappa = 0.394
 
-**Files created**: `preprocessing/edf_to_mat_eog_only.py`, `preprocessing/eda.py`
-
-### 2. Model Architecture Modifications
-
-**Original**: 3-channel input (2 EEG + 1 EOG), 4-class output  
-**Our Implementation**: Complete architecture adaptation
-- ✅ Redesigned input layer for 2-channel EOG-only (no EEG)
-- ✅ Modified all convolutional layers for 2D input shape `(samples, 1, 2)`
-- ✅ Rebuilt output layer for binary classification (2 classes instead of 4)
-- ✅ Updated all 6 model variants (CNN_2s through CNN_32s + CNN-LSTM)
-- ✅ Recalculated all layer dimensions and kernel sizes
-- ✅ Adjusted batch normalization for new architecture
-
-**Files modified**: All `src/models/*/myModel.py` files
-
-### 3. Training Pipeline Overhaul
-
-**Original**: Balanced multi-class training  
-**Our Implementation**: Severe class imbalance handling
-- ✅ Implemented custom class weighting system (drowsy samples weighted 30-40x more)
-- ✅ Redesigned data generator to yield sample weights per batch
-- ✅ Modified loss function integration for weighted training
-- ✅ Updated Keras 3.x compatibility (removed deprecated APIs)
-  - Changed `fit_generator` → `fit`
-  - Changed `predict_generator` → `predict`
-  - Removed `sample_weight_mode` parameter
-  - Updated generator output format
-- ✅ Fixed channel handling in data loading (E1, E2 explicit extraction)
-- ✅ Implemented sliding window with configurable stride for data augmentation
-
-**Files modified**: All `src/models/*/train.py` files
-
-### 4. Data Split Strategy Development
-
-**Original**: Pre-defined splits  
-**Our Implementation**: Subject-based splitting with data leakage prevention
-- ✅ Analyzed subject-specific drowsiness distributions
-- ✅ Identified optimal test subject (Subject 07 with 100,600 drowsy samples)
-- ✅ Designed train/val/test split by subjects (not by time)
-- ✅ Created configuration system for reproducible splits
-- ✅ Implemented dynamic file loading from split configuration
-
-**Files created**: `data/create_file_sets.py`
-
-### 5. Evaluation Framework for Imbalanced Data
-
-**Original**: Standard accuracy metrics  
-**Our Implementation**: Specialized metrics for 3.5% positive class
-- ✅ Cohen's Kappa as primary metric (handles imbalance)
-- ✅ Precision-Recall analysis for drowsiness detection
-- ✅ Confusion matrix with emphasis on true positive rate
-- ✅ Per-subject performance analysis
-- ✅ Comprehensive visualization suite
-- ✅ Model comparison framework across 6 architectures
-
-**Files created**: `notebooks/results_analysis.ipynb`, `scripts/results_analysis.py`
-
-### 6. Google Colab Deployment Pipeline
-
-**Original**: Local execution only  
-**Our Implementation**: Cloud-ready training system
-- ✅ Created packaging system for 240MB dataset + code
-- ✅ Designed notebook-based training workflow with cell markers
-- ✅ Implemented Google Drive integration for model persistence
-- ✅ Added session keep-alive mechanisms
-- ✅ Optimized batch sizes for Colab GPU (T4)
-- ✅ Created comprehensive Colab-ready notebooks
-
-**Files created**: `notebooks/microsleep_colab_complete.ipynb`, `scripts/prepare_for_colab.py`
-
-### 7. Keras 3.x Modernization
-
-**Original**: Keras 2.x / TensorFlow 1.x  
-**Our Implementation**: Updated for latest frameworks
-- ✅ Updated all import statements (`keras.layers.noise` → `keras.layers`)
-- ✅ Removed deprecated `sample_weight_mode` from compile
-- ✅ Fixed generator output format (removed list wrapping)
-- ✅ Updated optimizer instantiation (`legacy.Nadam` → `Nadam`)
-- ✅ Fixed history metric naming (`acc` → `accuracy`)
-- ✅ Removed `workers` parameter from evaluation functions
-- ✅ Updated model saving/loading for Keras 3.x format
-
-**Files modified**: All training, prediction, and model files
-
-### 8. Comprehensive Documentation
-
-**Original**: Minimal documentation  
-**Our Implementation**: Full project documentation suite
-- ✅ 500+ line main README covering entire workflow
-- ✅ Preprocessing guide (334 lines)
-- ✅ Training guide (660 lines) with Colab and local instructions
-- ✅ Results analysis guide (232 lines)
-- ✅ Per-directory README files
-- ✅ Troubleshooting sections
-- ✅ Code comments and docstrings
-
-**Files created**: 7 comprehensive documentation files
-
-## ✨ Key Features of Our Implementation
-
-- **EOG-Only Detection**: Uses only 2 EOG channels (LOC-Ref, ROC-Ref) - no EEG required
-- **Binary Drowsiness Classification**: Awake vs. Drowsy detection (optimized for imbalanced data)
-- **Multiple Architectures**: 6 model variants tested (2s, 4s, 8s, 16s, 32s windows + CNN-LSTM)
-- **Google Colab Ready**: Complete GPU training pipeline with automatic model saving
-- **Comprehensive Analysis**: Full evaluation suite with visualizations and statistical metrics
-- **Production-Ready Code**: Clean architecture, extensive documentation, Git-ready structure
-
-### Performance Highlights
-
-Best model (CNN_16s) for drowsiness detection achieves:
-- **Cohen's Kappa**: 0.394 (fair-moderate agreement for highly imbalanced data)
-- **Recall**: 32.7% (detects 1 in 3 drowsiness events)
-- **Precision**: 54.9% (55% of detections are correct)
-- **Accuracy**: 96.8% (on test set with 3.5% drowsy samples)
-
-## 📊 Dataset
+## 📊 Dataset Description
 
 **Source**: [Dryad Drowsiness Dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c)
 
-This dataset contains EOG recordings from participants performing monotonous driving simulation tasks designed to induce drowsiness.
+### Dataset Characteristics
 
-- **Task**: Drowsiness detection during monotonous tasks (NOT microsleep detection)
 - **Subjects**: 10 participants (20 recording sessions total)
 - **Drowsiness Events**: 816 annotated drowsiness episodes
-- **Channels**: 2 EOG channels only (LOC-Ref, ROC-Ref)
+- **Channels**: 2 EOG channels (LOC-Ref, ROC-Ref)
 - **Original Sampling Rate**: 128 Hz
-- **Resampled to**: 200 Hz (for compatibility with CNN architecture)
+- **Resampled to**: 200 Hz (for CNN compatibility)
 - **Original Format**: EDF files with separate annotation EDF files
 - **Class Imbalance**: ~96.5% Awake vs. ~3.5% Drowsy (severe imbalance)
 
-**Our Data Split Strategy** (by subject to prevent data leakage):
+### Labeling Methodology
+
+Drowsiness events are labeled using a **2-second context window** approach:
+- Each annotated drowsiness event is extended by ±1 second
+- This creates a 2-second buffer around each event
+- Samples within this window are labeled as "Drowsy" (1)
+- All other samples are labeled as "Awake" (0)
+
+This labeling strategy captures the transition periods into and out of drowsiness states, providing more training data while maintaining clinical relevance.
+
+### Data Split Strategy
+
+**Subject-based splitting** to prevent data leakage:
 - **Training**: Subjects 01-06 (12 files, ~35M samples)
 - **Validation**: Subjects 08-10 (6 files, ~9M samples)  
-- **Test**: Subject 07 (2 files, 100,600 drowsy samples - chosen for highest drowsiness frequency)
+- **Test**: Subject 07 (2 files, 100,600 drowsy samples)
 
-## 📁 Project Structure
+Subject 07 was chosen as the test set because it contains the highest number of drowsiness events (100,600 samples), providing a robust evaluation dataset.
+
+## 🏗️ Project Structure
 
 ```
-drowsiness_detection/
-├── README.md                           # This file
-├── requirements.txt                    # Python dependencies
-├── .gitignore                          # Git ignore rules
-├── LICENSE                            # MIT License
+drowsiness-detection_-eog-based/
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── LICENSE                           # MIT License
 │
-├── docs/                              # Documentation
-│   ├── PROJECT_GOAL.txt               # Original project objectives
-│   ├── PREPROCESSING_GUIDE.md         # EDF → MAT conversion guide
-│   ├── TRAINING_GUIDE.md              # Training instructions
-│   └── RESULTS_ANALYSIS_GUIDE.md      # Analysis guide
+├── Phase1_CNN/                       # Phase 1: Deep Learning Approach
+│   ├── README.md                     # Phase 1 documentation
+│   ├── data/                         # Processed .mat files
+│   │   ├── processed/files/          # 20 .mat files (240 MB)
+│   │   ├── file_sets.mat            # Train/val/test split
+│   │   └── create_file_sets.py      # Split configuration
+│   ├── src/                          # Model source code
+│   │   ├── loadData.py              # Data loading utilities
+│   │   ├── utils.py                 # Helper functions
+│   │   └── models/                  # Model architectures
+│   │       ├── cnn/                 # CNN variants (2s, 4s, 8s, 16s, 32s)
+│   │       └── cnn_lstm/            # CNN-LSTM hybrid
+│   ├── preprocessing/                # Data preprocessing
+│   │   ├── edf_to_mat_eog_only.py  # EDF → MAT conversion
+│   │   ├── eda.py                   # Exploratory data analysis
+│   │   └── README.md
+│   ├── notebooks/
+│   │   ├── CNN_Training_Colab.ipynb        # Training notebook
+│   │   └── CNN_Results_Analysis.ipynb      # Results analysis
+│   └── scripts/
+│       ├── cnn_training_colab.py           # Training script (.py with cell markers)
+│       ├── cnn_results_analysis.py         # Analysis script (.py with cell markers)
+│       ├── data_exploration.py             # EDA script (.py with cell markers)
+│       └── prepare_for_colab.py            # Package for Colab upload
 │
-├── preprocessing/                     # Data preprocessing
-│   ├── README.md                      # Preprocessing overview
-│   ├── edf_to_mat_eog_only.py        # Main conversion script
-│   ├── eda.py                         # Exploratory data analysis
-│   ├── annotations_summary.csv        # Event distribution
-│   └── dryad_eda_summary.csv         # Dataset statistics
+├── Phase2_ML/                        # Phase 2: Feature Engineering Approach
+│   ├── README.md                     # Phase 2 documentation
+│   ├── feature_engineering/          # Feature extraction modules
+│   │   ├── time_domain.py           # Time-domain features (26)
+│   │   ├── frequency_domain.py      # Frequency-domain features (20)
+│   │   ├── nonlinear.py             # Non-linear features (10)
+│   │   ├── eog_specific.py          # EOG-specific features (14)
+│   │   └── EOG_Feature_Explanations.md
+│   ├── features/                     # Extracted feature CSVs
+│   │   ├── train_features_16s.csv   # Training features (~150 MB)
+│   │   └── test_features_16s.csv    # Test features (~20 MB)
+│   ├── notebooks/
+│   │   └── ML_Training_Analysis.ipynb      # ML training & analysis
+│   ├── scripts/
+│   │   └── ml_training_analysis.py         # Analysis script (.py with cell markers)
+│   ├── feature_extraction.py        # Feature extraction script
+│   ├── train_ml_colab.py           # Colab training script
+│   └── requirements_phase2.txt      # Phase 2 dependencies
 │
-├── data/                              # Data directory
-│   ├── README.md                      # Data format documentation
-│   ├── processed/                     # Processed .mat files
-│   │   └── files/                     # 20 subject files (*.mat)
-│   ├── file_sets.mat                  # Train/val/test split
-│   └── create_file_sets.py            # Split configuration
-│
-├── src/                               # Source code
-│   ├── loadData.py                    # Data loading utilities
-│   ├── utils.py                       # Helper functions
-│   └── models/                        # Model architectures
-│       ├── cnn/                       # CNN variants
-│       │   ├── CNN_2s/                # 2-second window
-│       │   ├── CNN_4s/                # 4-second window
-│       │   ├── CNN_8s/                # 8-second window
-│       │   ├── CNN_16s/               # 16-second window (best)
-│       │   └── CNN_32s/               # 32-second window
-│       └── cnn_lstm/                  # CNN-LSTM hybrid
-│           └── CNN_LSTM/
-│
-├── notebooks/                         # Jupyter notebooks
-│   ├── microsleep_colab_complete.ipynb  # Complete training pipeline
-│   └── results_analysis.ipynb           # Results visualization
-│
-├── scripts/                           # Standalone scripts
-│   ├── prepare_for_colab.py           # Package for Colab upload
-│   ├── microsleep_colab_complete.py   # Training script (backup)
-│   └── results_analysis.py            # Analysis script (backup)
-│
-├── original_data/                     # Raw EDF files (optional)
-│   └── *.edf                          # Original recordings
-│
-└── archive/                           # Archived files
-    └── original_project/              # Reference implementation
+├── original_data/                    # Raw EDF files (optional)
+└── archive/                          # Archived/old files
 ```
 
 ## 🚀 Quick Start
@@ -242,139 +132,216 @@ cd drowsiness-detection-eog
 pip install -r requirements.txt
 ```
 
-### Usage Options
-
-**Option 1: Google Colab (Recommended)**
-1. Upload `notebooks/microsleep_colab_complete.ipynb` to Colab
-2. Follow the notebook instructions
-3. Train models on free GPU
-
-**Option 2: Local Training**
-1. Preprocess data (if needed)
-2. Train models locally
-3. Analyze results
-
 ## 📖 Complete Workflow
 
-### Step 1: Data Preprocessing
+### Step 1: Data Exploration (Optional but Recommended)
+
+Understand the dataset, labeling methodology, and class imbalance:
+
+```bash
+# Run EDA script
+python Phase1_CNN/scripts/data_exploration.py
+
+# Or use the preprocessing EDA
+python Phase1_CNN/preprocessing/eda.py
+```
+
+**What you'll see**:
+- Dataset overview (10 subjects, 20 sessions)
+- Drowsiness annotation distribution across subjects
+- Class imbalance visualization (96.5% vs 3.5%)
+- Signal characteristics and quality assessment
+- Train/val/test split rationale
+
+### Step 2: Data Preprocessing (If Starting from Raw EDF Files)
 
 Convert raw EDF files to processed MAT format:
 
 ```bash
-cd preprocessing
+cd Phase1_CNN/preprocessing
 python edf_to_mat_eog_only.py
 ```
 
 **What it does**:
-- Reads EDF files and drowsiness annotations from Dryad dataset
-- Extracts EOG channels (LOC-Ref, ROC-Ref) only
-- Performs custom resampling from 128 Hz → 200 Hz with anti-aliasing
-- Creates binary labels (0=Awake, 1=Drowsy) from drowsiness event annotations
-- Applies 2-second context windows around drowsiness events (±1 second)
+- Reads EDF files and drowsiness annotations
+- Extracts 2 EOG channels (LOC-Ref, ROC-Ref)
+- Resamples from 128 Hz → 200 Hz with anti-aliasing
+- Creates binary labels with 2-second context windows
 - Converts to `.mat` format for model compatibility
-- Handles class imbalance documentation
 
-**Output**: `data/processed/files/*.mat` (20 files, ~12 MB each, 240 MB total)
+**Output**: `Phase1_CNN/data/processed/files/*.mat` (20 files, ~240 MB total)
 
-For detailed preprocessing instructions, see [`docs/PREPROCESSING_GUIDE.md`](docs/PREPROCESSING_GUIDE.md).
+**Runtime**: ~10-15 minutes
 
-### Step 2: Configure Data Split
+### Step 3: Phase 1 - CNN Training
 
-Define train/validation/test split by subjects:
+Train deep learning models on Google Colab (recommended) or locally.
 
-```bash
-cd data
-python create_file_sets.py
-```
-
-**Output**: `data/file_sets.mat` with train/val/test file lists
-
-### Step 3: Model Training
-
-#### Option A: Google Colab (GPU Training)
+#### Option A: Google Colab (Recommended)
 
 1. **Package files for Colab**:
 ```bash
-python scripts/prepare_for_colab.py --auto
+cd Phase1_CNN/scripts
+python prepare_for_colab.py --auto
 ```
 
 2. **Upload to Colab**:
    - Upload `microsleep_colab_package.zip` to Colab
-   - Unzip: `!unzip -q microsleep_colab_package.zip`
+   - Upload `Phase1_CNN/notebooks/CNN_Training_Colab.ipynb`
 
-3. **Open training notebook**:
-   - Upload `notebooks/microsleep_colab_complete.ipynb`
-   - Or copy cells from `scripts/microsleep_colab_complete.py`
-
-4. **Run training**:
+3. **Run training**:
    - Select model (CNN_2s, CNN_4s, CNN_8s, CNN_16s, CNN_32s, CNN_LSTM)
    - Set hyperparameters (epochs, batch size, stride)
-   - Run training cells
+   - Train on free GPU (T4)
    - Models auto-save to Google Drive
 
 **Recommended settings**:
 - **Model**: CNN_16s (best performance)
 - **Epochs**: 3-6
-- **Batch Size**: 800 (for L4 GPU)
-- **Stride**: 1 (for maximum data augmentation)
+- **Batch Size**: 800 (for T4 GPU)
+- **Stride**: 1 (maximum data augmentation)
+
+**Runtime**: ~30-90 minutes per model
 
 #### Option B: Local Training
 
 ```bash
-cd src/models/cnn/CNN_16s
+cd Phase1_CNN/src/models/cnn/CNN_16s
 python train.py
 ```
 
-**Note**: Local training without GPU is very slow (~hours per epoch).
+**Note**: Requires GPU. CPU training is very slow (~hours per epoch).
 
-For detailed training instructions, see [`docs/TRAINING_GUIDE.md`](docs/TRAINING_GUIDE.md).
+### Step 4: Phase 1 - Results Analysis
 
-### Step 4: Model Evaluation
-
-**Test set evaluation**:
-```bash
-cd src/models/cnn/CNN_16s
-python predict.py  # Test set predictions
-python predict_val.py  # Validation set
-```
-
-**Metrics calculated**:
-- Accuracy, Precision, Recall, F1-score
-- Cohen's Kappa (primary metric for imbalanced data)
-- Confusion Matrix
-- Per-class performance
-
-### Step 5: Results Analysis
-
-Comprehensive analysis and visualization:
+Analyze CNN model performance:
 
 ```bash
-# In Colab or Jupyter
-jupyter notebook notebooks/results_analysis.ipynb
+# In Jupyter or Google Colab
+jupyter notebook Phase1_CNN/notebooks/CNN_Results_Analysis.ipynb
 
-# Or as Python script
-python scripts/results_analysis.py
+# Or run as Python script
+python Phase1_CNN/scripts/cnn_results_analysis.py
 ```
 
-**What you get**:
-- Performance comparison across all models
-- Precision-Recall tradeoff plots
+**What you'll see**:
+- Performance comparison across all 6 models
+- Cohen's Kappa analysis (primary metric for imbalanced data)
 - Confusion matrices
-- Training curves
-- Window size analysis
-- Model ranking and recommendations
+- Training curves (loss, accuracy over epochs)
+- Window size impact analysis
+- Model recommendations
 
-**Outputs saved to**: `drowsiness_results/analysis_plots/` or `microsleep_results/analysis_plots/` (legacy naming)
-- Performance comparison charts
-- Confusion matrices
-- Training curves
-- CSV summary table
+**Key Results** (Test Set: Subject 07):
 
-For detailed analysis guide, see [`docs/RESULTS_ANALYSIS_GUIDE.md`](docs/RESULTS_ANALYSIS_GUIDE.md).
+| Model | Kappa | Precision | Recall | Accuracy |
+|-------|-------|-----------|--------|----------|
+| **CNN_16s** 🏆 | **0.394** | **54.9%** | **32.7%** | 96.8% |
+| CNN_8s | 0.289 | 58.9% | 20.2% | 96.8% |
+| CNN_32s | 0.286 | 53.1% | 32.2% | 96.7% |
+| CNN_4s | 0.046 | 19.7% | 3.2% | 96.2% |
+| CNN_2s | 0.056 | 9.5% | 7.7% | 94.3% |
+| CNN_LSTM | 0.008 | 4.2% | 4.6% | 93.1% |
 
-## 🏗️ Model Architectures
+### Step 5: Phase 2 - Feature Extraction
 
-### CNN Variants (2s, 4s, 8s, 16s, 32s)
+Extract engineered features from EOG signals:
+
+```bash
+cd Phase2_ML
+python feature_extraction.py
+```
+
+**What it does**:
+- Applies 16-second sliding windows (stride=1 second)
+- Extracts ~70 features per window:
+  - 26 time-domain features
+  - 20 frequency-domain features
+  - 10 non-linear features
+  - 14 EOG-specific features
+- Saves features to CSV files
+
+**Output**:
+- `Phase2_ML/features/train_features_16s.csv` (~150 MB)
+- `Phase2_ML/features/test_features_16s.csv` (~20 MB)
+
+**Runtime**: ~30-60 minutes
+
+### Step 6: Phase 2 - ML Training & Analysis
+
+Train traditional ML classifiers:
+
+```bash
+# In Google Colab (recommended)
+# Upload Phase2_ML/notebooks/ML_Training_Analysis.ipynb
+# Upload the two CSV files from Phase2_ML/features/
+
+# Or run training script
+python Phase2_ML/train_ml_colab.py
+```
+
+**What it does**:
+- Trains multiple classifiers:
+  - Logistic Regression (baseline)
+  - Random Forest (primary)
+  - SVM with RBF kernel
+  - XGBoost
+  - LightGBM
+  - Gradient Boosting
+  - Ensemble (voting)
+- Evaluates on Subject 07 (same test set as Phase 1)
+- Analyzes feature importance
+- Compares with CNN results
+
+**Runtime**: ~10-20 minutes
+
+**Key Results** (Test Set: Subject 07):
+
+| Model | Kappa | Precision | Recall | F1-Score |
+|-------|-------|-----------|--------|----------|
+| **Ensemble** 🏆 | **0.179** | **35.5%** | **49.9%** | 0.415 |
+| Random Forest | 0.116 | 46.6% | 14.2% | 0.217 |
+| XGBoost | 0.168 | 33.8% | 52.5% | 0.411 |
+| LightGBM | 0.171 | 34.3% | 50.4% | 0.408 |
+| SVM | 0.103 | 29.4% | 27.3% | 0.283 |
+| Logistic Regression | -0.006 | 24.4% | 70.9% | 0.363 |
+
+## 📈 Results Comparison: Phase 1 vs Phase 2
+
+### Performance Summary
+
+| Metric | Phase 1 (CNN_16s) | Phase 2 (Ensemble) | Difference |
+|--------|-------------------|-------------------|------------|
+| **Cohen's Kappa** | **0.394** | **0.179** | **-54.6%** |
+| **Recall (Drowsy)** | **32.7%** | **49.9%** | **+52.6%** |
+| **Precision (Drowsy)** | **54.9%** | **35.5%** | **-35.3%** |
+| **F1-Score** | 0.408 | 0.415 | +1.7% |
+
+### Interpretation
+
+**Phase 1 (CNN) Advantages**:
+- ✅ Higher overall agreement (Kappa)
+- ✅ Higher precision (fewer false alarms)
+- ✅ Better for applications requiring high confidence
+- ✅ End-to-end learning captures complex patterns
+
+**Phase 2 (ML) Advantages**:
+- ✅ Higher recall (detects more drowsiness events)
+- ✅ Interpretable features (feature importance analysis)
+- ✅ No GPU required for inference
+- ✅ Faster training
+- ✅ Lower computational cost
+
+### Use Case Recommendations
+
+- **Safety-critical applications** (e.g., driver monitoring): Use **Phase 1 CNN** for higher precision
+- **Research & analysis**: Use **Phase 2 ML** for interpretability and feature insights
+- **Resource-constrained deployment**: Use **Phase 2 ML** for lower computational requirements
+- **Maximum detection**: Use **Phase 2 ML** for higher recall
+
+## 🔧 Technical Details
+
+### Phase 1: CNN Architecture
 
 Deep convolutional neural network with:
 - **Input**: EOG signals (2 channels × window_size samples)
@@ -394,69 +361,54 @@ Deep convolutional neural network with:
 - **CNN_16s**: 3,200 samples (16 sec) ⭐ **Best**
 - CNN_32s: 6,400 samples (32 sec)
 
-### CNN-LSTM
+### Phase 2: Feature Engineering
 
-Hybrid architecture combining:
-- **CNN block**: Feature extraction from EOG signals
-- **Bidirectional LSTM**: Temporal sequence modeling (128 units)
-- **TimeDistributed Dense**: Per-timestep classification
+**70 features** across 4 categories:
 
-## 📈 Results Summary
+1. **Time-Domain (26 features)**:
+   - Basic stats: mean, std, var, min, max, range, median
+   - Shape: peak/valley amplitude, rise/fall time
+   - Statistical: skewness, kurtosis, RMS, crest factor
+   - Advanced: zero-crossing rate, energy
+   - Hjorth: activity, mobility, complexity
 
-### Model Comparison (Test Set: Subject 07)
+2. **Frequency-Domain (20 features)**:
+   - Band powers: delta, theta, alpha, beta (absolute + relative)
+   - Spectral: centroid, spread, entropy, edge frequency
+   - Ratios: theta/alpha, delta/beta, alpha/beta
 
-| Model | Kappa ⭐ | Precision | Recall | Accuracy | TP Count |
-|-------|---------|-----------|--------|----------|----------|
-| **CNN_16s** 🏆 | **0.394** | **54.9%** | **32.7%** | 96.8% | **32,927** |
-| CNN_8s | 0.289 | 58.9% | 20.2% | 96.8% | 20,362 |
-| CNN_32s | 0.286 | 53.1% | 32.2% | 96.7% | 32,412 |
-| CNN_4s | 0.046 | 19.7% | 3.2% | 96.2% | 3,222 |
-| CNN_2s | 0.056 | 9.5% | 7.7% | 94.3% | 7,715 |
-| CNN_LSTM | 0.008 | 4.2% | 4.6% | 93.1% | 4,582 |
+3. **Non-Linear (10 features)**:
+   - Entropy: sample, approximate, permutation
+   - Fractal: Higuchi, Petrosian, Katz, Hurst exponent
+   - Complexity: Lempel-Ziv, DFA alpha
 
-**Key Insights**:
-- **16-second window is optimal** for drowsiness detection in this dataset
-- Longer windows provide better temporal context for recognizing drowsiness patterns
-- CNN_LSTM significantly underperforms (requires extensive hyperparameter tuning)
-- Precision-Recall trade-off: CNN_8s has higher precision (fewer false alarms), CNN_16s has higher recall (more drowsiness events detected)
-
-### Performance Interpretation
-
-**Cohen's Kappa**:
-- 0.0-0.2: Poor agreement
-- 0.2-0.4: Fair agreement ← CNN_16s/8s/32s
-- 0.4-0.6: Moderate agreement
-- 0.6+: Substantial agreement
-
-**Best for different use cases**:
-- **General use**: CNN_16s (best balance)
-- **Minimize false alarms**: CNN_8s (higher precision)
-- **Maximize detection**: CNN_16s (higher recall)
-
-## 🔧 Configuration & Hyperparameters
-
-### Training Parameters
-
-```python
-# In notebooks/microsleep_colab_complete.ipynb
-MODEL_TO_TRAIN = 'CNN_16s'  # Choose model
-EPOCHS = 3                   # Number of epochs (3-6 recommended)
-BATCH_SIZE = 800            # Batch size (adjust for GPU memory)
-STRIDE = 1                  # Window stride (1=max augmentation)
-```
-
-### Data Augmentation
-
-- **Stride=1**: Maximum overlap, ~2.9M windows per subject
-- **Stride=200**: 1-second steps, ~14K windows
-- **Stride=3200**: Non-overlapping, ~900 windows
+4. **EOG-Specific (14 features)**:
+   - Blinks: rate, amplitude (mean, std)
+   - Slow eye movements: count, duration
+   - LOC-ROC: correlation, lag, lag correlation
+   - Movements: amplitude, velocity, saccade rate
+   - Asymmetry: energy ratio, amplitude ratio
 
 ### Class Imbalance Handling
 
-The dataset is highly imbalanced (~3.5% drowsy samples). Handled by:
-- **Class weights**: Automatically calculated and applied during training
-- **Sample weights**: Per-sample weighting in generator
-- **Cohen's Kappa**: Primary metric (handles imbalance better than accuracy)
+Both phases address the severe class imbalance (96.5% vs 3.5%):
+
+**Phase 1 (CNN)**:
+- Class weights: Drowsy samples weighted 30-40x more
+- Sample weights in data generator
+- Cohen's Kappa as primary metric
+
+**Phase 2 (ML)**:
+- `class_weight='balanced'` in all classifiers
+- Stratified sampling
+- Cohen's Kappa as primary metric
+
+## 📚 Documentation
+
+- **[Phase1_CNN/README.md](Phase1_CNN/README.md)**: Detailed Phase 1 documentation
+- **[Phase2_ML/README.md](Phase2_ML/README.md)**: Detailed Phase 2 documentation
+- **[Phase1_CNN/preprocessing/README.md](Phase1_CNN/preprocessing/README.md)**: Preprocessing guide
+- **[Phase2_ML/feature_engineering/EOG_Feature_Explanations.md](Phase2_ML/feature_engineering/EOG_Feature_Explanations.md)**: Feature descriptions
 
 ## 🛠️ Troubleshooting
 
@@ -475,55 +427,27 @@ BATCH_SIZE = 400  # Instead of 800
 
 **3. "File not found" errors**
 ```bash
-# Solution: Check paths are correct
-# Ensure zip was extracted properly
-# Verify file_sets.mat exists
+# Solution: Verify paths are correct
+# Check that data files exist in expected locations
 ```
 
 **4. Class imbalance warnings**
 ```
-# Normal behavior - class weights automatically handle this
+# Normal behavior - class weights handle this automatically
 # Check training output for class weight values
 ```
 
-**5. Validation Kappa very low**
+**5. Low performance on validation set**
 ```
 # Expected - validation subjects may differ from training distribution
-# Focus on test set Kappa as primary metric
+# Focus on test set (Subject 07) as primary evaluation
 ```
-
-**6. Drive disconnects in Colab**
-```python
-# Solution: Remount drive
-from google.colab import drive
-drive.mount('/content/drive', force_remount=True)
-```
-
-### Performance Tips
-
-**Speed up training**:
-- Increase batch size (if GPU allows)
-- Use stride > 1 for faster data generation
-- Train on Colab GPU (10-20x faster)
-
-**Improve model**:
-- Train for more epochs (5-10)
-- Try data augmentation techniques
-- Experiment with different window sizes
-- Ensemble multiple models
-
-## 📚 Documentation
-
-- **[PROJECT_GOAL.txt](docs/PROJECT_GOAL.txt)**: Original objectives and specifications
-- **[PREPROCESSING_GUIDE.md](docs/PREPROCESSING_GUIDE.md)**: Detailed preprocessing steps
-- **[TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md)**: Training instructions and tips
-- **[RESULTS_ANALYSIS_GUIDE.md](docs/RESULTS_ANALYSIS_GUIDE.md)**: Analysis notebook guide
 
 ## 📄 Citation
 
 If you use this code, please cite:
 
-**Original Method**:
+**Original CNN Method**:
 ```bibtex
 @article{malafeev2021automatic,
   title={Automatic Detection of Microsleep Episodes with Deep Learning},
@@ -546,78 +470,38 @@ If you use this code, please cite:
 }
 ```
 
-## 🆚 Summary: Our Implementation vs. Original Project
-
-| Aspect | Original (Malafeev et al.) | **Our Implementation** |
-|--------|---------------------------|----------------------|
-| **Primary Task** | Microsleep detection | **Drowsiness detection** |
-| **Dataset** | Clinical sleep study data | **Dryad drowsiness dataset** |
-| **Input Channels** | 3 channels (2 EEG + 1 EOG) | **2 EOG channels only** |
-| **Output Classes** | 4 sleep stages | **2 classes (Awake/Drowsy)** |
-| **Data Format** | Pre-processed | **Custom EDF→MAT pipeline** |
-| **Class Balance** | Relatively balanced | **Severe imbalance (3.5% drowsy)** |
-| **Preprocessing** | Provided | **Built from scratch** |
-| **Model Input Shape** | (samples, 1, 3) | **(samples, 1, 2)** |
-| **Training Strategy** | Standard | **Class-weighted with sample weights** |
-| **Framework** | Keras 2.x / TF 1.x | **Keras 3.x / TF 2.x** |
-| **Deployment** | Local only | **Google Colab + local** |
-| **Data Split** | Pre-defined | **Subject-based with leakage prevention** |
-| **Evaluation** | Standard metrics | **Imbalance-aware metrics (Kappa)** |
-| **Documentation** | Research paper | **500+ lines + 3 guides** |
-| **Lines of Code Modified** | - | **~2,500+ lines adapted/created** |
-
-### 🔬 Technical Complexity
-
-This adaptation required expertise in:
-- Signal processing (EDF parsing, resampling, filtering)
-- Deep learning architecture modification
-- Class imbalance handling strategies
-- Keras/TensorFlow API migration
-- Data pipeline engineering
-- Evaluation metric selection for imbalanced data
-- Cloud deployment and optimization
-
-**This is NOT a simple fork or replication** - it represents substantial engineering and research work to adapt a microsleep detection system to drowsiness detection on a completely different dataset.
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Potential improvements:
 
-**Potential improvements**:
-- Feature engineering approaches (time/frequency domain)
-- Additional model architectures (Transformers, ResNet)
+**Phase 1 Enhancements**:
+- Additional CNN architectures (ResNet, Transformer)
 - Cross-subject validation strategies
 - Real-time detection pipeline
 - Mobile deployment
+
+**Phase 2 Enhancements**:
+- Feature selection optimization
+- Hyperparameter tuning (grid search)
+- Additional ML models
+- SHAP values for interpretability
+- SMOTE for minority class oversampling
 
 ## 👥 Authors
 
 **Original Microsleep Detection Method**: Malafeev et al. (2021)  
 **Drowsiness Detection Adaptation**: Extensively modified and adapted for Dryad dataset with EOG-only binary classification
 
-This implementation represents independent work adapting the microsleep detection architecture to drowsiness detection, requiring complete redesign of:
-- Data preprocessing pipeline
-- Model architecture and training procedures
-- Evaluation framework
-- Deployment system
+This implementation represents independent work adapting the microsleep detection architecture to drowsiness detection, requiring complete redesign of data preprocessing, model architecture, training procedures, and evaluation framework.
 
 ## 🙏 Acknowledgments
 
 - **Malafeev et al.** for the original microsleep detection CNN architecture concept
 - **Dryad dataset providers** for the drowsiness detection dataset
-- **Google Colab** for free GPU access enabling model training
 - **Open-source community** for TensorFlow, Keras, and scientific Python tools
 
-## 📞 Contact
 
-For questions or issues, please open an issue on GitHub.
+**Note**: This project is for research and educational purposes. The system is not intended for clinical, safety-critical, or real-world drowsiness monitoring applications without extensive additional validation, testing, and regulatory approval.
 
----
-
-**Note**: This project is for research and educational purposes, demonstrating drowsiness detection from EOG signals. The system is not intended for clinical, safety-critical, or real-world drowsiness monitoring applications without extensive additional validation, testing, and regulatory approval.
-
-**Research Focus**: This work demonstrates the adaptation of deep learning architectures from one physiological detection task (microsleep) to another (drowsiness), highlighting the technical challenges and solutions required for such adaptations.
+**Research Focus**: This work demonstrates two complementary approaches to drowsiness detection from EOG signals - end-to-end deep learning vs. feature engineering - highlighting the trade-offs between performance, interpretability, and computational requirements.

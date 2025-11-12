@@ -12,7 +12,7 @@ def create_colab_package():
     Create a zip file with all necessary files for Colab training
     """
     
-    # Define what to include
+    # Define what to include (updated for Phase1_CNN structure)
     data_files = Path('../data/processed/files')
     code_dir = Path('../src/models')
     file_sets = Path('../data/file_sets.mat')
