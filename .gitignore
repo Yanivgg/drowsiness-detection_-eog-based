@@ -154,6 +154,13 @@ Alternative_Splits/*.joblib
 Alternative_Splits/__pycache__/
 Alternative_Splits_backup/
 
+# Development and archived files (kept locally for safety)
+archive/phase2_dev_files/
+Alternative_Splits_backup/
+
+# Temporary documentation
+**/CLEANUP_SUMMARY.md
+
 # Archive (old code - not needed in main repo)
 archive/
 

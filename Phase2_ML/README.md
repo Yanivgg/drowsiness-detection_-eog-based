@@ -1,8 +1,15 @@
-# Phase 2: Feature Engineering + Machine Learning
+# Experiment 2: Traditional ML with Feature Engineering
+
+> Part of the Drowsiness Detection project  
+> Evaluates classical machine learning with hand-crafted interpretable features
+
+This experiment extracts 63 features from time, frequency, nonlinear, and EOG-specific domains, training multiple classical ML algorithms for drowsiness classification.
+
+**Key Results**: Ensemble achieves Cohen's Kappa = 0.179, with feature importance insights
 
 ## Overview
 
-Phase 2 implements a **feature engineering + traditional ML approach** for drowsiness detection. Instead of end-to-end deep learning, this phase extracts interpretable features from EOG signals and trains classical machine learning classifiers.
+This experiment implements a **feature engineering + traditional ML approach** for drowsiness detection. Instead of end-to-end deep learning, this approach extracts interpretable features from EOG signals and trains classical machine learning classifiers.
 
 ### Key Features
 

@@ -1,8 +1,15 @@
-# Alternative Data Splitting Experiments
+# Experiment 3: CNN with Multiple Splitting Strategies
 
-This directory contains experiments with different data splitting strategies to evaluate model generalization beyond the original Phase 1 cross-subject split.
+> Part of the Drowsiness Detection project  
+> Achieves best performance through optimized data splitting (Kappa: 0.433)
 
-**Key Innovation**: Tests multiple evaluation strategies (temporal, subject-independent, and hybrid) to comprehensively assess model performance.
+This experiment evaluates CNN performance with three different data splitting strategies, demonstrating that optimal data utilization significantly improves drowsiness detection accuracy.
+
+**Key Results**: CNN_16s with Split 1.5 achieves Cohen's Kappa = 0.433 — **BEST IN PROJECT**
+
+---
+
+**Key Innovation**: Tests multiple evaluation strategies (temporal, subject-independent, and hybrid) to comprehensively assess model performance and achieve superior results compared to traditional single-split approaches.
 
 ---
 
@@ -48,27 +55,30 @@ Alternative splits explore:
 
 ```
 Alternative_Splits/
-├── README.md                                    # This file
-├── RESULTS_SUMMARY.md                           # Comprehensive results analysis
+├── README.md                          # This file - comprehensive documentation
+├── RESULTS_SUMMARY.md                 # Detailed results analysis & comparison
 │
-├── scripts/                                     # Split generation utilities
-│   ├── create_within_subject_split.py          # Generate within-subject split
-│   └── create_cv_folds.py                      # Generate 10-fold CV splits
+├── training_scripts/                  # CNN training scripts
+│   ├── Alternative_Splits_Training_Colab_v2.py  # Within-Subject + CV training
+│   ├── Split_1_5_Training_Colab.py              # Split 1.5 training (BEST)
+│   └── Alternative_Splits_Feature_Extraction.py # ML feature extraction
 │
-├── within_subject/                              # Experiment 1 data
-│   ├── file_sets.mat                           # Split definition
-│   └── train_colab.py                          # Training script
+├── analysis/                          # Results analysis tools
+│   └── Display_Detailed_Results.py    # Detailed results viewer
 │
-├── cross_validation/                            # Experiment 2 data
-│   ├── fold_01.mat ... fold_10.mat            # 10 fold definitions
-│   └── train_cv_colab.py                       # CV training script
+├── scripts/                           # Utility scripts for split generation
+│   ├── create_within_subject_split.py
+│   └── create_cv_folds.py
 │
-├── Alternative_Splits_Training_Colab_v2.py     # CNN training (Exp 1 & 2)
-├── Split_1_5_Training_Colab.py                 # CNN training (Exp 3)
-├── Alternative_Splits_Feature_Extraction.py    # ML feature extraction (optional)
-├── Display_Detailed_Results.py                 # Results visualization
+├── cross_validation/                  # 10-fold CV data
+│   ├── fold_01.mat ... fold_10.mat
+│   └── train_cv_colab.py
 │
-└── ml_features/                                 # ML training features (gitignored)
+├── within_subject/                    # Within-subject split data
+│   ├── file_sets.mat
+│   └── train_colab.py
+│
+└── ml_features/                       # ML training features (gitignored)
     ├── split_1_5_train_features_16s.csv
     ├── split_1_5_test_features_16s.csv
     ├── within_subject_train_features_16s.csv

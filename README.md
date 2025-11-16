@@ -1,4 +1,4 @@
-# Drowsiness Detection from EOG Signals: A Two-Phase Approach
+# Drowsiness Detection from EOG Signals: Three Complementary Approaches
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow 2.x](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://www.tensorflow.org/)
@@ -6,21 +6,54 @@
 
 ## 🎯 Project Overview
 
-This project implements automatic **drowsiness detection** from EOG (Electrooculography) signals using multiple complementary approaches:
+This project evaluates **three complementary approaches** for automatic drowsiness detection from EOG (Electrooculography) signals using the public Dryad dataset.
 
-- **Phase 1**: End-to-end deep learning with Convolutional Neural Networks (CNN)
-- **Phase 2**: Feature engineering with traditional machine learning classifiers
-- **Alternative Splits**: Extended evaluation with multiple data splitting strategies
+### Three Experiments
 
-All phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c), containing EOG recordings from 10 participants performing monotonous driving simulation tasks.
+#### Experiment 1: CNN with Cross-Subject Evaluation
+**Directory**: `Phase1_CNN/`
 
-### Key Highlights
+- **Approach**: Deep learning with convolutional neural networks
+- **Validation**: Subject-independent (train on 9 subjects, test on 1 unseen)
+- **Models**: 6 CNN variants (2s, 4s, 8s, 16s, 32s windows + CNN-LSTM)
+- **Key Strength**: Tests true generalization to completely new individuals
+- **Best Result**: CNN_16s, Cohen's Kappa = 0.394
 
-- **Dataset**: 10 subjects, 20 recording sessions, 816 drowsiness events
-- **Input**: 2 EOG channels only (LOC-Ref, ROC-Ref) - no EEG required
-- **Task**: Binary classification (Awake vs. Drowsy)
-- **Challenge**: Severe class imbalance (96.5% Awake, 3.5% Drowsy)
-- **Best Performance**: CNN_16s with Split 1.5 strategy - Cohen's Kappa = 0.433 🏆
+#### Experiment 2: Traditional ML with Feature Engineering
+**Directory**: `Phase2_ML/`
+
+- **Approach**: Hand-crafted features with classical machine learning
+- **Features**: 63 features (time, frequency, nonlinear, EOG-specific domains)
+- **Models**: Logistic Regression, Random Forest, SVM, XGBoost, LightGBM, Ensemble
+- **Key Strength**: Interpretability and computational efficiency
+- **Best Result**: Ensemble, Cohen's Kappa = 0.179
+
+#### Experiment 3: CNN with Multiple Splitting Strategies
+**Directory**: `Alternative_Splits/`
+
+- **Approach**: Same CNN architecture with optimized data splitting
+- **Strategies**: Within-Subject, 10-fold Cross-Validation, Split 1.5 Recordings
+- **Key Strength**: Maximizes training data while testing temporal generalization
+- **Best Result**: CNN_16s Split 1.5, Cohen's Kappa = 0.433 🏆 **PROJECT BEST**
+
+### Key Findings
+
+- **Best Overall Performance**: Experiment 3 (Split 1.5) — Kappa = 0.433
+- **CNN significantly outperforms ML**: ~120% better Kappa
+- **Data splitting matters**: Optimized strategy improves CNN by 10%
+- **Practical deployment**: EOG-only setup achieves moderate agreement (Kappa 0.4-0.5)
+
+### Recommended Reading Order
+
+1. Start with **Experiment 3** (`Alternative_Splits/`) for best results
+2. Review **Experiment 1** (`Phase1_CNN/`) for baseline CNN approach
+3. Explore **Experiment 2** (`Phase2_ML/`) for interpretable features
+
+See `EXPERIMENTS_OVERVIEW.md` for detailed comparison.
+
+### Dataset
+
+All experiments use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c): 10 subjects, 20 recording sessions, 816 drowsiness events, 2 EOG channels only.
 
 ## 📊 Dataset Description
 
@@ -35,6 +68,41 @@ All phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:
 - **Resampled to**: 200 Hz (for CNN compatibility)
 - **Original Format**: EDF files with separate annotation EDF files
 - **Class Imbalance**: ~96.5% Awake vs. ~3.5% Drowsy (severe imbalance)
+
+### Channel Selection Rationale
+
+**Original Dryad Dataset** is a comprehensive polysomnography recording including:
+- **EEG channels** (2): Fpz-Cz, Pz-Oz (brain activity)
+- **EOG channels** (2): LOC-Ref, ROC-Ref (eye movements) ← **Used in this project**
+- **EMG channels** (1): Chin EMG (muscle activity)
+- **ECG** (1): Single-lead electrocardiogram (heart activity)
+- **Respiration** (2): Thoracic and abdominal effort
+
+**This project exclusively uses the 2 EOG channels** for the following reasons:
+
+1. **Minimal Invasiveness**: EOG electrodes require only 4 simple skin-surface sensors (vs. 20+ for full EEG cap), making it practical for real-world deployment
+
+2. **Direct Physiological Indicator**: Eye movements and blink patterns are direct, observable indicators of drowsiness:
+   - Slow rolling eye movements (SREMs)
+   - Prolonged eyelid closures (PERCLOS)
+   - Reduced blink frequency
+
+3. **Practical Deployment**: EOG-based detection is feasible in real-world applications:
+   - Automotive (driver drowsiness detection)
+   - Aviation (pilot monitoring)
+   - Occupational safety (operators, security guards)
+
+4. **Computational Efficiency**: 2 channels vs. 20+ channels significantly reduces:
+   - Data transmission requirements
+   - Storage needs
+   - Processing computational cost
+   - Real-time inference latency
+
+5. **Research Question**: Evaluating whether a minimal sensor setup (EOG-only) can achieve acceptable drowsiness detection accuracy
+
+All other channels (EEG, EMG, ECG, respiration) were excluded during preprocessing. The raw EDF files contain all modalities, but this project's preprocessing pipeline extracts and processes only the EOG channels.
+
+**Trade-off**: While multi-modal approaches might achieve higher accuracy, this project prioritizes practicality and deployability over maximal performance.
 
 ### Labeling Methodology
 
@@ -329,15 +397,20 @@ Test different data splitting strategies for comprehensive generalization assess
 
 ```bash
 # Split 1.5 (BEST RESULTS - RECOMMENDED) 🏆
-cd Alternative_Splits
+cd Alternative_Splits/training_scripts
 # Upload Split_1_5_Training_Colab.py to Google Colab and run
 ```
 
 **What it does**:
 - Tests 3 different splitting strategies:
-  1. **Split 1.5 Recordings**: Train on all _1 + 50% of _2, test on remaining 50% of _2
-  2. **Within-Subject Split**: Train on all _1, test on all _2 recordings  
-  3. **10-Fold Cross-Validation**: Leave-one-subject-out (LOSO) validation
+  1. **Split 1.5 Recordings**: Train on _1 + first 50% of _2, test on last 50% of _2
+  2. **Within-Subject Split**: Train on _1, test on _2 recordings  
+  3. **10-Fold Cross-Validation**: Leave-one-subject-out (LOSO)
+
+**Scripts**:
+- `training_scripts/Split_1_5_Training_Colab.py` — Best performance
+- `training_scripts/Alternative_Splits_Training_Colab_v2.py` — Within-Subject + CV
+- `analysis/Display_Detailed_Results.py` — View detailed metrics
 
 **Key Results** (CNN_16s):
 
@@ -490,15 +563,20 @@ BATCH_SIZE = 400  # Instead of 800
 # Focus on test set (Subject 07) as primary evaluation
 ```
 
-## 📄 Citation
+## 📄 Attribution, Citations & Original Work
 
-If you use this code, please cite:
+### Architectural Foundation
 
-**Original CNN Method**:
+This project adapts the CNN architecture from:
+
+**Malafeev, A., Hertig-Godeschalk, A., Schreier, D. R., Skorucak, J., Mathis, J., & Achermann, P. (2021).** Automatic Detection of Microsleep Episodes with Deep Learning. *Frontiers in Neuroscience*, 15, 564098. https://doi.org/10.3389/fnins.2021.564098
+
 ```bibtex
 @article{malafeev2021automatic,
   title={Automatic Detection of Microsleep Episodes with Deep Learning},
-  author={Malafeev, Alexander and Hertig-Godeschalk, Annette and Schreier, Dario R and Skorucak, Jan and Mathis, Johannes and Achermann, Peter},
+  author={Malafeev, Alexander and Hertig-Godeschalk, Annette and 
+          Schreier, Dario R and Skorucak, Jan and Mathis, Johannes and 
+          Achermann, Peter},
   journal={Frontiers in Neuroscience},
   volume={15},
   pages={564098},
@@ -508,14 +586,90 @@ If you use this code, please cite:
 }
 ```
 
-**Dataset**:
+### Scope of Adaptation & Original Work
+
+While this project uses the Malafeev et al. CNN architecture as a **methodological foundation**, it represents **substantial independent research and implementation**:
+
+#### 1. Problem Reformulation
+
+| Aspect | Malafeev et al. (Original) | This Project |
+|--------|---------------------------|--------------|
+| **Task** | Multi-class microsleep episode detection | Binary drowsiness classification |
+| **Input** | 20-channel polysomnography (EEG/EOG/EMG) | 2-channel EOG only |
+| **Output** | Episode classification (5 classes) | Binary (Awake vs. Drowsy) |
+| **Context** | Clinical sleep laboratory | Real-world drowsiness monitoring |
+
+#### 2. Complete Data Pipeline Redesign
+
+- **Dataset**: Proprietary sleep lab data → Public Dryad drowsiness dataset
+- **Preprocessing**: Entirely new pipeline for EOG-only extraction from multi-modal EDF files
+- **Annotation parsing**: New labeling methodology with ±1s context windows
+- **Data loading**: Custom `loadData.py` implementation for Dryad format
+- **Channel mapping**: 20+ channels → 2 channels (architecture input adaptation)
+
+#### 3. Technical Implementation from Scratch
+
+- **Framework migration**: Original implementation → TensorFlow 2.x / Keras 3.x
+- **Environment**: Local/cluster → Google Colab with Drive integration
+- **Class imbalance handling**: Weighted loss functions, experimentation with SMOTE
+- **Hyperparameter tuning**: Batch sizes, learning rates, epochs optimized for new dataset
+- **Training infrastructure**: Complete training pipelines for 3 experiments
+
+#### 4. Novel Experimental Contributions (Beyond Original Paper)
+
+This project extends beyond the original work with **three comprehensive experiments**:
+
+**Experiment 1 (Phase1_CNN)**:
+- Reimplemented CNN architecture for drowsiness (vs. microsleep)
+- 6 window size variants (2s, 4s, 8s, 16s, 32s + CNN-LSTM)
+- Cross-subject validation with Dryad dataset
+
+**Experiment 2 (Phase2_ML)** — **Entirely Novel**:
+- 63 hand-crafted features from time/frequency/nonlinear domains
+- Comparison of 6 ML algorithms (LR, RF, SVM, XGBoost, LightGBM, Ensemble)
+- Interpretability analysis (feature importance)
+
+**Experiment 3 (Alternative_Splits)** — **Entirely Novel**:
+- Three data splitting strategies (Within-Subject, 10-fold CV, Split 1.5)
+- Optimization of training data utilization
+- Best results achieved (Kappa: 0.433)
+
+#### 5. Extensive Evaluation Framework
+
+- Cohen's Kappa as primary metric (appropriate for imbalanced data)
+- Per-class metrics (precision, recall, F1 for both classes)
+- Sensitivity, specificity, false positive/negative rates
+- Confusion matrices with normalization
+- Cross-experiment comprehensive comparison
+
+### Dataset Citation
+
+**Dryad Drowsiness Dataset**:
+
+Chuang, C.-H., Huang, C.-S., Ko, L.-W., & Lin, C.-T. (2018). *An EEG-based perceptual function integration network for application to drowsy driving*. Dryad Digital Repository. https://doi.org/10.5061/dryad.5tb2rbp9c
+
 ```bibtex
-@misc{dryad_drowsiness,
-  title={Dryad Drowsiness Dataset},
-  url={https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c},
+@misc{chuang2018eeg,
+  title={An EEG-based perceptual function integration network for 
+         application to drowsy driving},
+  author={Chuang, Chun-Hsiang and Huang, Chung-Song and 
+          Ko, Li-Wei and Lin, Chin-Teng},
+  year={2018},
+  publisher={Dryad Digital Repository},
   doi={10.5061/dryad.5tb2rbp9c}
 }
 ```
+
+### Summary
+
+**Architectural Inspiration**: Malafeev et al. (2021)  
+**Implementation**: Entirely original  
+**Dataset**: Different (Dryad vs. proprietary)  
+**Task**: Different (drowsiness vs. microsleep)  
+**Experiments 2 & 3**: Novel contributions  
+**Preprocessing, training, evaluation**: Original work
+
+This project demonstrates how a published CNN architecture can be successfully **adapted and extended** for a related but distinct problem (drowsiness detection from EOG-only signals), while contributing novel experimental approaches and comprehensive comparative analysis.
 
 
 ## 🤝 Contributing

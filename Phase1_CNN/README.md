@@ -1,8 +1,15 @@
-# Phase 1: CNN-Based Drowsiness Detection
+# Experiment 1: CNN with Cross-Subject Evaluation
+
+> Part of the Drowsiness Detection project  
+> Evaluates deep learning approaches with subject-independent validation
+
+This experiment applies convolutional neural networks (CNN) to drowsiness detection using EOG-only signals, with subject-independent testing to evaluate generalization to completely unseen individuals.
+
+**Key Results**: CNN_16s achieves Cohen's Kappa = 0.394 on held-out Subject 07
 
 ## Overview
 
-Phase 1 implements an **end-to-end deep learning approach** for drowsiness detection using Convolutional Neural Networks (CNNs). This phase adapts the Malafeev et al. (2021) microsleep detection architecture for drowsiness detection on the Dryad dataset.
+This experiment implements an **end-to-end deep learning approach** for drowsiness detection using Convolutional Neural Networks (CNNs). This approach adapts the Malafeev et al. (2021) microsleep detection architecture for drowsiness detection on the Dryad dataset.
 
 ### Key Features
 
