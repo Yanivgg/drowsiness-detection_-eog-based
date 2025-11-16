@@ -6,12 +6,13 @@
 
 ## 🎯 Project Overview
 
-This project implements automatic **drowsiness detection** from EOG (Electrooculography) signals using two complementary approaches:
+This project implements automatic **drowsiness detection** from EOG (Electrooculography) signals using multiple complementary approaches:
 
 - **Phase 1**: End-to-end deep learning with Convolutional Neural Networks (CNN)
 - **Phase 2**: Feature engineering with traditional machine learning classifiers
+- **Alternative Splits**: Extended evaluation with multiple data splitting strategies
 
-Both phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c), containing EOG recordings from 10 participants performing monotonous driving simulation tasks.
+All phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi:10.5061/dryad.5tb2rbp9c), containing EOG recordings from 10 participants performing monotonous driving simulation tasks.
 
 ### Key Highlights
 
@@ -19,7 +20,7 @@ Both phases use the [Dryad drowsiness dataset](https://datadryad.org/dataset/doi
 - **Input**: 2 EOG channels only (LOC-Ref, ROC-Ref) - no EEG required
 - **Task**: Binary classification (Awake vs. Drowsy)
 - **Challenge**: Severe class imbalance (96.5% Awake, 3.5% Drowsy)
-- **Best Performance**: CNN_16s with Cohen's Kappa = 0.394
+- **Best Performance**: CNN_16s with Split 1.5 strategy - Cohen's Kappa = 0.433 🏆
 
 ## 📊 Dataset Description
 
@@ -105,6 +106,22 @@ drowsiness-detection_-eog-based/
 │   ├── feature_extraction.py        # Feature extraction script
 │   ├── train_ml_colab.py           # Colab training script
 │   └── requirements_phase2.txt      # Phase 2 dependencies
+│
+├── Alternative_Splits/              # Alternative Data Splitting Experiments
+│   ├── README.md                     # Alternative splits documentation
+│   ├── RESULTS_SUMMARY.md           # Comprehensive results analysis
+│   ├── Alternative_Splits_Training_Colab_v2.py  # CNN training (Exp 1 & 2)
+│   ├── Split_1_5_Training_Colab.py  # CNN training (Split 1.5 - BEST)
+│   ├── Alternative_Splits_Feature_Extraction.py # ML feature extraction
+│   ├── Display_Detailed_Results.py  # Results visualization
+│   ├── scripts/                      # Split generation utilities
+│   │   ├── create_within_subject_split.py
+│   │   └── create_cv_folds.py
+│   ├── within_subject/               # Experiment 1: Temporal generalization
+│   │   └── file_sets.mat
+│   └── cross_validation/             # Experiment 2: 10-fold LOSO CV
+│       ├── fold_01.mat ... fold_10.mat
+│       └── train_cv_colab.py
 │
 ├── original_data/                    # Raw EDF files (optional)
 └── archive/                          # Archived/old files
@@ -306,16 +323,44 @@ python Phase2_ML/train_ml_colab.py
 | SVM | 0.103 | 29.4% | 27.3% | 0.283 |
 | Logistic Regression | -0.006 | 24.4% | 70.9% | 0.363 |
 
-## 📈 Results Comparison: Phase 1 vs Phase 2
+### Step 7: Alternative Splits - Extended Evaluation
 
-### Performance Summary
+Test different data splitting strategies for comprehensive generalization assessment:
 
-| Metric | Phase 1 (CNN_16s) | Phase 2 (Ensemble) | Difference |
-|--------|-------------------|-------------------|------------|
-| **Cohen's Kappa** | **0.394** | **0.179** | **-54.6%** |
-| **Recall (Drowsy)** | **32.7%** | **49.9%** | **+52.6%** |
-| **Precision (Drowsy)** | **54.9%** | **35.5%** | **-35.3%** |
-| **F1-Score** | 0.408 | 0.415 | +1.7% |
+```bash
+# Split 1.5 (BEST RESULTS - RECOMMENDED) 🏆
+cd Alternative_Splits
+# Upload Split_1_5_Training_Colab.py to Google Colab and run
+```
+
+**What it does**:
+- Tests 3 different splitting strategies:
+  1. **Split 1.5 Recordings**: Train on all _1 + 50% of _2, test on remaining 50% of _2
+  2. **Within-Subject Split**: Train on all _1, test on all _2 recordings  
+  3. **10-Fold Cross-Validation**: Leave-one-subject-out (LOSO) validation
+
+**Key Results** (CNN_16s):
+
+| Strategy | Cohen's Kappa | Drowsy Recall | Drowsy Precision |
+|----------|---------------|---------------|------------------|
+| **Split 1.5** 🥇 | **0.433** | **34.7%** | **41.8%** |
+| Within-Subject | 0.323 | 28.7% | 38.8% |
+| Cross-Subject (Original) | 0.394 | 32.7% | 54.9% |
+
+**Why Split 1.5 is Best**: 50% more training data + temporal generalization testing
+
+See [Alternative_Splits/README.md](Alternative_Splits/README.md) for detailed instructions.
+
+## 📈 Results Comparison: All Approaches
+
+### Performance Summary (Best Models from Each Approach)
+
+| Approach | Method | Cohen's Kappa | Recall | Precision | F1-Score |
+|----------|--------|---------------|--------|-----------|----------|
+| **Alternative Splits** 🥇 | CNN_16s (Split 1.5) | **0.433** | 34.7% | 41.8% | **0.380** |
+| **Phase 1 (Original)** | CNN_16s (Cross-Subject) | 0.394 | 32.7% | 54.9% | 0.408 |
+| **Alternative Splits** | CNN_16s (Within-Subject) | 0.323 | 28.7% | 38.8% | 0.330 |
+| **Phase 2** | Ensemble ML | 0.179 | **49.9%** | 35.5% | 0.415 |
 
 ### Interpretation
 
@@ -407,6 +452,8 @@ Both phases address the severe class imbalance (96.5% vs 3.5%):
 
 - **[Phase1_CNN/README.md](Phase1_CNN/README.md)**: Detailed Phase 1 documentation
 - **[Phase2_ML/README.md](Phase2_ML/README.md)**: Detailed Phase 2 documentation
+- **[Alternative_Splits/README.md](Alternative_Splits/README.md)**: Alternative splitting experiments (Within-Subject, CV, Split 1.5)
+- **[Alternative_Splits/RESULTS_SUMMARY.md](Alternative_Splits/RESULTS_SUMMARY.md)**: Comprehensive results analysis & comparison
 - **[Phase1_CNN/preprocessing/README.md](Phase1_CNN/preprocessing/README.md)**: Preprocessing guide
 - **[Phase2_ML/feature_engineering/EOG_Feature_Explanations.md](Phase2_ML/feature_engineering/EOG_Feature_Explanations.md)**: Feature descriptions
 

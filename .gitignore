@@ -138,6 +138,22 @@ analysis_plots/
 *.jpg
 *.pdf
 
+# Alternative Splits results and large files (can be regenerated)
+Alternative_Splits/within_subject/results/
+Alternative_Splits/cross_validation/results/
+Alternative_Splits/split_1_5/results/
+Alternative_Splits/within_subject/*.h5
+Alternative_Splits/cross_validation/*.h5
+Alternative_Splits/*.h5
+Alternative_Splits/*.keras
+
+# Alternative Splits ML features (LARGE - can be regenerated)
+Alternative_Splits/ml_features/*.csv
+Alternative_Splits/features_files/
+Alternative_Splits/*.joblib
+Alternative_Splits/__pycache__/
+Alternative_Splits_backup/
+
 # Archive (old code - not needed in main repo)
 archive/
 
