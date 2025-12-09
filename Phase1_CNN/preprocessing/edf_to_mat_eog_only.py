@@ -11,7 +11,7 @@ import os
 import pyedflib
 import pandas as pd
 
-# נתיב לתיקייה שלך
+# Path to your folder
 data_dir = r"C:\Yaniv2\dataset_dryad"
 
 rows = []
@@ -34,13 +34,13 @@ for fname in os.listdir(data_dir):
         except Exception as e:
             print(f"⚠️ שגיאה בקריאת {fname}: {e}")
 
-# המרה ל-DataFrame
+
 df = pd.DataFrame(rows)
 
-# סידור לפי שם קובץ וזמן
+# Sort by file name and time
 df = df.sort_values(by=["file", "onset_s"])
 
-# שמירה לקובץ CSV לסקירה
+# Save to CSV file for review
 output_csv = os.path.join(data_dir, "annotations_summary_pyedf.csv")
 df.to_csv(output_csv, index=False, encoding="utf-8")
 
@@ -54,25 +54,25 @@ import pandas as pd
 import os
 
 edf_dir = r"C:\Yaniv2\dataset_dryad"
-fs = 128  # קצב הדגימה שלך
+fs = 128  # Your sample rate
 
 signal_file = os.path.join(edf_dir, "01M_1.edf")
 ann_file    = os.path.join(edf_dir, "01M_1_annotations.edf")
 
-# טען את הסיגנל
+# Load the signal
 raw = mne.io.read_raw_edf(signal_file, preload=True)
 n_samples = len(raw.times)
 
-# טען את האנוטציות
+# Load the annotations
 f = pyedflib.EdfReader(ann_file)
 onsets, durations, descs = f.readAnnotations()
 f.close()
 
-# צור וקטור תיוגים 0/1
+# Create a 0/1 labeling vector
 labels = np.zeros(n_samples, dtype=int)
 
-# קבע כמה דגימות סביב כל אירוע נחשבות "עייפות"
-window_sec = 2  # לדוגמה: 2 שניות סביב האירוע
+# Set how many samples around each event are considered "fatigue"
+window_sec = 2  # For example: 2 seconds around the event
 half_win = int(window_sec * fs / 2)
 
 for onset in onsets:
@@ -88,26 +88,26 @@ import mne
 import numpy as np
 import os
 
-# הגדרות
+# setting
 edf_dir = r"C:\Yaniv2\dataset_dryad"
 signal_file = os.path.join(edf_dir, "01M_1.edf")
 ann_file = os.path.join(edf_dir, "01M_1_annotations.edf")
 fs = 128
 window_sec = 2  # אותו חלון כמו קודם (±1 שנייה)
 
-# טען את הסיגנל כדי לדעת כמה דגימות יש
+# Load the signal to know how many samples there are
 raw = mne.io.read_raw_edf(signal_file, preload=False)
 n_samples = len(raw.times)
 
-# טען את האנוטציות
+# Load the annotations
 f = pyedflib.EdfReader(ann_file)
 onsets, durations, descs = f.readAnnotations()
 f.close()
 
-# ספירת אנוטציות
+# Annotation count
 n_events = len(onsets)
 
-# צור וקטור תיוגים 0/1
+# Create a 0/1 labeling vector
 labels = np.zeros(n_samples, dtype=int)
 half_win = int(window_sec * fs / 2)
 for onset in onsets:
@@ -116,7 +116,7 @@ for onset in onsets:
     end = min(center + half_win, n_samples)
     labels[start:end] = 1
 
-# הדפס סיכום
+# Print summary
 n_label_ones = int(labels.sum())
 seconds_labeled = n_label_ones / fs
 
