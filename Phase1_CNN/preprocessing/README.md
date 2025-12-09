@@ -64,7 +64,6 @@ Event distribution across subjects and sessions.
 Dataset metadata and statistics.
 
 **Columns**:
-- Subject demographics
 - Channel information
 - Sampling rates
 - Recording durations
