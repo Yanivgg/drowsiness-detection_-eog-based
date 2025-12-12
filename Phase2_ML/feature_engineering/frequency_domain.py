@@ -7,8 +7,7 @@ Extracts ~20 frequency-domain features including:
 - Spectral characteristics: centroid, spread, entropy, edge frequency
 - Band power ratios: theta/alpha, delta/beta
 
-Author: Yaniv Grosberg
-Date: 2025-11-09
+
 """
 
 import numpy as np
