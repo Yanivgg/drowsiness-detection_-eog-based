@@ -9,8 +9,6 @@ Extracts ~25 time-domain features including:
 - Signal characteristics: zero-crossing rate, RMS, crest factor
 - Hjorth parameters: activity, mobility, complexity
 
-Author: Yaniv Grosberg
-Date: 2025-11-09
 """
 
 import numpy as np
