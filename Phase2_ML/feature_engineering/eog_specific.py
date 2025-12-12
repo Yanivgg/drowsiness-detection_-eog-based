@@ -10,8 +10,7 @@ Extracts 12 EOG-specific features including:
 
 Note: SEM (Slow Eye Movements) features removed - detection not working properly
 
-Author: Yaniv Grosberg
-Date: 2025-11-09
+
 Updated: 2025-11-11 (removed SEM features)
 """
 
