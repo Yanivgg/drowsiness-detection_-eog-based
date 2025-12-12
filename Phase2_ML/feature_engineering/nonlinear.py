@@ -8,8 +8,7 @@ Extracts ~10 non-linear features including:
 - Detrended Fluctuation Analysis (DFA)
 - Lyapunov exponent (optional, computationally expensive)
 
-Author: Yaniv Grosberg
-Date: 2025-11-09
+
 """
 
 import numpy as np
